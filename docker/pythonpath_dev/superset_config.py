@@ -105,6 +105,11 @@ class CeleryConfig:
 
 CELERY_CONFIG = CeleryConfig
 
+LANGUAGES = {
+    'en': {'flag': 'us', 'name': 'English'},
+    'pt_BR': {'flag': 'br', 'name': 'Portuguese (Brazil)'},
+}
+
 FEATURE_FLAGS = {"ALERT_REPORTS": True, "DATASET_FOLDERS": True}
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501

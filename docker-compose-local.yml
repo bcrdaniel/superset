@@ -1,0 +1,91 @@
+# -----------------------------------------------------------------------
+# Docker Compose Simplificado para Teste de Tradução (pt_BR)
+# -----------------------------------------------------------------------
+x-superset-user: &superset-user root
+x-superset-volumes: &superset-volumes
+  - ./docker:/app/docker
+  # Montamos o código backend para facilitar debug se necessario, 
+  # mas as traduções compiladas (.mo/.json) estarão na imagem.
+  #- ./superset:/app/superset
+  - ./docker/pythonpath_dev:/app/pythonpath
+  - ./superset-core:/app/superset-core
+  - superset_home:/app/superset_home
+  - superset_data:/app/data
+
+x-common-build: &common-build
+  context: .
+  target: lean 
+  args:
+    DEV_MODE: "false"
+    BUILD_TRANSLATIONS: "true"
+
+services:
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis:/data
+
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset
+    volumes:
+      - db_home:/var/lib/postgresql/data
+
+  superset:
+    env_file:
+      - path: docker/.env
+        required: false
+    build:
+      <<: *common-build
+    command: ["/app/docker/docker-bootstrap.sh", "app"]
+    restart: unless-stopped
+    ports:
+      - 8088:8088
+    user: *superset-user
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    volumes: *superset-volumes
+    environment:
+      SUPERSET_ENV: production
+      SUPERSET_LOAD_EXAMPLES: "no"
+      CYPRESS_CONFIG: "false"
+      SUPERSET_PORT: 8088
+      MAPBOX_API_KEY: ""
+
+  superset-init:
+    build:
+      <<: *common-build
+    command: ["/app/docker/docker-init.sh"]
+    env_file:
+      - path: docker/.env
+        required: false
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+    user: *superset-user
+    volumes: *superset-volumes
+    environment:
+      SUPERSET_LOAD_EXAMPLES: "no"
+      SUPERSET_ENV: production
+
+volumes:
+  superset_home:
+    external: false
+  db_home:
+    external: false
+  redis:
+    external: false
+  superset_data:
+    external: false
